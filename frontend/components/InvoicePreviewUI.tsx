@@ -46,7 +46,12 @@ type InvoiceData = {
 }
 
 // The result is now directly the invoice data
-type CreateInvoiceToolResult = InvoiceData;
+type CreateInvoiceToolResult = {
+    type: string;
+    before_message?: string;
+    invoice_data: InvoiceData;
+    after_message?: string;
+} | InvoiceData;
 
 const LoadingSpinner = () => (
     <div className="flex justify-center items-center p-4">
@@ -66,11 +71,23 @@ const InvoicePreview = ({ result }: { result: CreateInvoiceToolResult }) => {
     const [modalOpen, setModalOpen] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     
-    if (!result || !result.pdf) {
+    // Extract the invoice data based on the format received
+    let invoiceData: InvoiceData;
+    if (result && 'type' in result && result.type === 'invoice_with_messages') {
+        // It's the special format with messages
+        invoiceData = result.invoice_data;
+    } else {
+        // It's just the invoice data directly
+        invoiceData = result as InvoiceData;
+    }
+    
+    // Check if we have valid invoice data
+    if (!invoiceData || !invoiceData.pdf) {
+        console.error("Invalid invoice data:", result);
         return <div className="text-red-500 p-4">Error: Invalid invoice data</div>;
     }
     
-    const { pdf } = result;
+    const { pdf } = invoiceData;
     const pdfUrl = `http://localhost:8000${pdf.url}`;
     
     const handleViewPDF = () => {
@@ -93,8 +110,8 @@ const InvoicePreview = ({ result }: { result: CreateInvoiceToolResult }) => {
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: `Invoice ${result.invoice_number}`,
-                    text: `Invoice for ${result.customer.name}`,
+                    title: `Invoice ${invoiceData.invoice_number}`,
+                    text: `Invoice for ${invoiceData.customer.name}`,
                     url: pdfUrl,
                 });
             } catch (error) {
@@ -193,7 +210,7 @@ const InvoicePreview = ({ result }: { result: CreateInvoiceToolResult }) => {
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
                 <div className="bg-white rounded-lg overflow-hidden max-w-4xl w-full max-h-[90vh]">
                     <div className="flex justify-between items-center p-4 border-b">
-                        <h3 className="text-lg font-medium">Invoice {result.invoice_number}</h3>
+                        <h3 className="text-lg font-medium">Invoice {invoiceData.invoice_number}</h3>
                         <div className="flex space-x-2">
                             <button 
                                 onClick={handleShare}
@@ -235,6 +252,29 @@ export const InvoicePreviewUI = makeAssistantToolUI<CreateInvoiceToolArgs, Creat
         if (!result) return <LoadingSpinner />;
         
         try {
+            // Check if it's the special format with messages
+            if (typeof result === 'object' && 'type' in result && result.type === 'invoice_with_messages') {
+                // Display both messages and the invoice in one component
+                return (
+                    <div>
+                        {result.before_message && (
+                            <div className="mb-4 text-gray-800">
+                                {result.before_message}
+                            </div>
+                        )}
+                        
+                        <InvoicePreview result={result} />
+                        
+                        {result.after_message && (
+                            <div className="mt-4 text-gray-800">
+                                {result.after_message}
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+            
+            // If it's just the invoice data
             return <InvoicePreview result={result} />;
         } catch (error) {
             console.error("Error rendering invoice preview:", error);

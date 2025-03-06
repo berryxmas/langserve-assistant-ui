@@ -116,8 +116,13 @@ def create_invoice(customer_name: str, customer_email: str, amount: float, item:
         "url": f"/invoices/{pdf_info['filename']}"  # URL for accessing the PDF
     }
     
-    # Return just the invoice data as a plain JSON object
-    return invoice_data
+    # Return a special format that includes before and after messages
+    return {
+        "type": "invoice_with_messages",
+        "before_message": f"I'll create an invoice for {customer_name}.",
+        "invoice_data": invoice_data,
+        "after_message": f"Here's the invoice (#{invoice_number}) for {customer_name}. Would you like me to send this to your client at {customer_email}?"
+    }
 
 
 tools = [get_weather, get_stock_price, create_invoice]
