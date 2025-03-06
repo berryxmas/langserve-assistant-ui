@@ -3,7 +3,7 @@ import { mergeStreams } from './merge-stream';
 import { prepareResponseHeaders } from './prepare-response-header';
 import { AIStreamCallbacksAndOptions, createCallbacksTransformer } from 'ai';
 import { StreamData } from 'ai';
-import { formatStreamPart } from '@ai-sdk/ui-utils';
+import { formatDataStreamPart } from '@ai-sdk/ui-utils';
 
 // LC stream event v2
 type LangChainStreamEvent = {
@@ -167,14 +167,14 @@ export function createLangServeAdapterStreamDataTransformer() {
             typeof parsedChunk.content === 'string'
               ? parsedChunk.content
               : decoder.decode(parsedChunk.content);
-          controller.enqueue(encoder.encode(formatStreamPart('text', message)));
+          controller.enqueue(encoder.encode(formatDataStreamPart('text', message)));
           break;
         }
         case 'tool-call-streaming-start': {
           // Use encoder.encode() on the formatted stream part
           controller.enqueue(
             encoder.encode(
-              formatStreamPart('tool_call_streaming_start', {
+              formatDataStreamPart('tool_call_streaming_start', {
                 toolCallId: parsedChunk.toolCallId,
                 toolName: parsedChunk.toolName,
               })
@@ -184,7 +184,7 @@ export function createLangServeAdapterStreamDataTransformer() {
         }
         case 'tool-call-delta': {
           controller.enqueue(
-            formatStreamPart('tool_call_delta', {
+            formatDataStreamPart('tool_call_delta', {
               toolCallId: parsedChunk.toolCallId,
               argsTextDelta: parsedChunk.argsTextDelta,
             })
@@ -194,7 +194,7 @@ export function createLangServeAdapterStreamDataTransformer() {
         case 'tool-call': {
           controller.enqueue(
             encoder.encode(
-              formatStreamPart('tool_call', {
+              formatDataStreamPart('tool_call', {
                 toolCallId: parsedChunk.toolCallId,
                 toolName: parsedChunk.toolName,
                 args: parsedChunk.args,
@@ -206,7 +206,7 @@ export function createLangServeAdapterStreamDataTransformer() {
         case 'tool-result': {
           controller.enqueue(
             encoder.encode(
-              formatStreamPart('tool_result', {
+              formatDataStreamPart('tool_result', {
                 toolCallId: parsedChunk.toolCallId,
                 result: parsedChunk.result,
               })
@@ -217,7 +217,7 @@ export function createLangServeAdapterStreamDataTransformer() {
         case 'error': {
           controller.enqueue(
             encoder.encode(
-              formatStreamPart(
+              formatDataStreamPart(
                 'error',
                 parsedChunk.error?.message || 'Unknown error'
               )
@@ -228,7 +228,7 @@ export function createLangServeAdapterStreamDataTransformer() {
         case 'step-finish': {
           controller.enqueue(
             encoder.encode(
-              formatStreamPart('finish_step', {
+              formatDataStreamPart('finish_step', {
                 finishReason: parsedChunk.finishReason,
                 usage: parsedChunk.usage
                   ? {
@@ -245,7 +245,7 @@ export function createLangServeAdapterStreamDataTransformer() {
         case 'finish': {
           controller.enqueue(
             encoder.encode(
-              formatStreamPart('finish_message', {
+              formatDataStreamPart('finish_message', {
                 finishReason: parsedChunk.finishReason,
                 usage: parsedChunk.usage
                   ? {
